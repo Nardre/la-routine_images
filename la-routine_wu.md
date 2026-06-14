@@ -23,6 +23,7 @@ When executing the binary, it prompts for user input and then prints an output.
 Using Binary Ninja, we can easily locate `main.main` since the binary is not stripped.
 
 Because Go is a high-level language, the binary includes a significant amount of initialization and garbage collection overhead. Furthermore, all necessary libraries are statically linked within the compiled binary.
+
 ![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image3.png)
 
 ---
