@@ -258,3 +258,5 @@ To use it:
 chmod +x la-routine
 gdb --q --nx -x solve.gdb
 ```
+
+https://gist.github.com/Nardre/8410cc121d2a163a3d2f04acf70d42c5
