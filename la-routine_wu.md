@@ -65,47 +65,47 @@ For the dynamic analysis, we will use a GDB script.
 We have identified a few functions that might be useful:
 1) a function to calculate pie address (though it is redundant here since PIE is disabled) .
 ```python
-def pie_calc_address(binja_address):  
-   # exe_base = 0x555555554000  
-   exe_base = 0x400000  
-   binja_base = 0x400000  
-   offset = binja_address - binja_base  
-   exe_address = exe_base + offset  
+def pie_calc_address(binja_address):
+   # exe_base = 0x555555554000
+   exe_base = 0x400000
+   binja_base = 0x400000
+   offset = binja_address - binja_base
+   exe_address = exe_base + offset
    return hex(exe_address)
 ```
 
 2) functions to break and watch.
 ```python
-def pie_break(binja_address):  
-   exe_address = pie_calc_address(binja_address)  
+def pie_break(binja_address):
+   exe_address = pie_calc_address(binja_address)
    gdb.execute(f"break *{exe_address}")
    gdb.execute("commands $bpnum\nsilent\nend")
    
-def pie_watch(binja_address):  
-   exe_address = pie_calc_address(binja_address)  
+def pie_watch(binja_address):
+   exe_address = pie_calc_address(binja_address)
    gdb.execute(f"watch *{exe_address}")
 ```
 
 3) A function to print memory content at a specific address and parse code.
 ```python
-def pie_print(binja_address, message):  
-   exe_address = pie_calc_address(binja_address)  
-   tokens = re.findall(r'\{\*?([\$\w\+\-\*\d\s]+),\s*(%\w+)\}', message)  
-   fmt = re.sub(r'\{\*?[\$\w\+\-\*\d\s]+,\s*%\w+\}', lambda m: re.search(r'%\w+', m.group()).group(), message)  
-   gdb_args = ", ".join(f"*(char*)({expr})" if m.startswith('{*') else expr.replace('$', '$')  
-                        for m, (expr, _) in zip(re.findall(r'\{[^}]+\}', message), tokens))  
-   if gdb_args:  
-       gdb.execute(f'dprintf *{exe_address}, "{fmt}\\n", {gdb_args}')  
-   else:  
+def pie_print(binja_address, message):
+   exe_address = pie_calc_address(binja_address)
+   tokens = re.findall(r'\{\*?([\$\w\+\-\*\d\s]+),\s*(%\w+)\}', message)
+   fmt = re.sub(r'\{\*?[\$\w\+\-\*\d\s]+,\s*%\w+\}', lambda m: re.search(r'%\w+', m.group()).group(), message)
+   gdb_args = ", ".join(f"*(char*)({expr})" if m.startswith('{*') else expr.replace('$', '$')
+                        for m, (expr, _) in zip(re.findall(r'\{[^}]+\}', message), tokens))
+   if gdb_args:
+       gdb.execute(f'dprintf *{exe_address}, "{fmt}\\n", {gdb_args}')
+   else:
        gdb.execute(f'dprintf *{exe_address}, "{fmt}\\n"')
       
-def binary_ninja_dbg(code):  
-   lines = code.split("\n")  
-   for line in lines:  
-       if len(line.split()) <= 1: continue  
-       address, sep, code = line.partition(" ")  
-       address = int(address, 16)  
-       print(address, sep + code)  
+def binary_ninja_dbg(code):
+   lines = code.split("\n")
+   for line in lines:
+       if len(line.split()) <= 1: continue
+       address, sep, code = line.partition(" ")
+       address = int(address, 16)
+       print(address, sep + code)
        pie_print(address, sep + code)
 ```
 
@@ -113,16 +113,16 @@ def binary_ninja_dbg(code):
 
 Let's set a breakpoint at the compare function.
 ```python
-# gdb script  
+# gdb script
 python pie_break(0x004a698d) # compare function break
   
 python pie_print(0x004a698a, "0x004a698a rax = {$rax, %s}")  # print expected
 python pie_print(0x004a698a, "0x004a698a rdi = {$rdi, %s}")  # print our transformed flag
-python pie_print(0x004a698a, "0x004a698a call internal/bytealg.Compare")  
+python pie_print(0x004a698a, "0x004a698a call internal/bytealg.Compare")
 run <<< FCSC{fake_flag.}
 ```
 ![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image10.png)
-![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image12.png|541)
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image12.png)
 
 We discovered that the first five characters of the transformed input match the prefix of the expected flag (`FSCS{`).
 
@@ -132,29 +132,28 @@ This indicates that the algorithm processes and transforms our input character b
 
 We can retrieve the flag using the following function:
 ```python
-def brute_force():  
-   n = 48  
-   res = ['.']*n  
-   ind = 0  
-   pie_break(0x004a698d)  
-  
-   while (ind < n):  
-       for c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890{}_!":  
-           res[ind] = c  
-           gdb.execute(f"run <<< {"".join(res)}", to_string=True)  
-  
-           inferior = gdb.selected_inferior()  
-           expected_address = int(gdb.parse_and_eval("$rax"))  
-           expected_len = int(gdb.parse_and_eval("$rbx"))  
-           expected = inferior.read_memory(expected_address, expected_len).tobytes().decode('utf-8', errors='ignore  
-')  
-           flag_address = int(gdb.parse_and_eval("$rdi"))  
-           flag_len = int(gdb.parse_and_eval("$rsi"))  
-           flag = inferior.read_memory(flag_address, flag_len).tobytes().decode('utf-8', errors='ignore')  
-  
-           if expected[ind] == flag[ind]:  
-               print("".join(res))  
-               ind += 1  
+def brute_force():
+   n = 48
+   res = ['.']*n
+   ind = 0
+   pie_break(0x004a698d)
+
+   while (ind < n):
+       for c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890{}_!":
+           res[ind] = c
+           gdb.execute(f"run <<< {"".join(res)}", to_string=True)
+
+           inferior = gdb.selected_inferior()
+           expected_address = int(gdb.parse_and_eval("$rax"))
+           expected_len = int(gdb.parse_and_eval("$rbx"))
+           expected = inferior.read_memory(expected_address, expected_len).tobytes().decode('utf-8', errors='ignore')
+           flag_address = int(gdb.parse_and_eval("$rdi"))
+           flag_len = int(gdb.parse_and_eval("$rsi"))
+           flag = inferior.read_memory(flag_address, flag_len).tobytes().decode('utf-8', errors='ignore')
+
+           if expected[ind] == flag[ind]:
+               print("".join(res))
+               ind += 1
                break
 ```
 
