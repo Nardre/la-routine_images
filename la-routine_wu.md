@@ -2,7 +2,7 @@
 
 The sample for this reverse engineering challenge can be found on [Hacropole](https://hackropole.fr/fr/challenges/reverse/fcsc2026-reverse-la-routine/).
 In this write-up, we will use a GDB script to solve it.
-![[CTF/Go - gdb script/image1.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image1.png)
 
 ---
 
@@ -11,10 +11,10 @@ In this write-up, we will use a GDB script to solve it.
 Running `file` and `checksec` reveals that the binary is not stripped and PIE is disabled.
 
 A review of `strings` yielded no interesting results, and running the binary with `strace` or `ltrace` did not provide any useful insights.
-![[CTF/Go - gdb script/image2.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image2.png)
 
 When executing the binary, it prompts for user input and then prints an output.
-![[CTF/Go - gdb script/image5.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image5.png)
 
 ---
 
@@ -23,12 +23,12 @@ When executing the binary, it prompts for user input and then prints an output.
 Using Binary Ninja, we can easily locate `main.main` since the binary is not stripped.
 
 Because Go is a high-level language, the binary includes a significant amount of initialization and garbage collection overhead. Furthermore, all necessary libraries are statically linked within the compiled binary.
-![[CTF/Go - gdb script/image3.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image3.png)
 
 ---
 
 At the end of the `main.main` function, we find an input scan from `stdin`, followed by a conditional check and a print statement, confirming our observations from the initial dynamic analysis.
-![[CTF/Go - gdb script/image15.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image15.png)
 
 ---
 
@@ -37,21 +37,21 @@ There are three distinct return paths:
 - A return triggered if an error occurs.
 - A return triggered if the flag length is not a multiple of 4.
 - A final return reached once the loop completes successfully.
-![[CTF/Go - gdb script/image6.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image6.png)
 
 ---
 
 Let's focus on the primary verification logic.
 The application calls `internal/bytealg.Compare`, passing `main.expected` and an unknown buffer as arguments.
 
-![[CTF/Go - gdb script/image16.png|512]]
-![[CTF/Go - gdb script/image9.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image16.png|512)
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image9.png)
 
 ---
 
 Now for the core algorithm: the function appears to transform our input before comparing it to the `main.expected` array we identified earlier.
 
-![[CTF/Go - gdb script/image17.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image17.png)
 
 Let's solve this problem dynamically.
 
@@ -120,8 +120,8 @@ python pie_print(0x004a698a, "0x004a698a rdi = {$rdi, %s}")  # print our transfo
 python pie_print(0x004a698a, "0x004a698a call internal/bytealg.Compare")  
 run <<< FCSC{fake_flag.}
 ```
-![[CTF/Go - gdb script/image10.png]]
-![[CTF/Go - gdb script/image12.png|541]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image10.png)
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image12.png|541)
 
 We discovered that the first five characters of the transformed input match the prefix of the expected flag (`FSCS{`).
 
@@ -157,7 +157,7 @@ def brute_force():
                break
 ```
 
-![[CTF/Go - gdb script/image14.png]]
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image14.png)
 
 FCSC{GoLanG_......................._P4TTerNs!!!}
 
@@ -257,4 +257,3 @@ To use it:
 ```bash
 gdb --q --nx -x solve.gdb
 ```
-
