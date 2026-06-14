@@ -45,7 +45,7 @@ There are three distinct return paths:
 Let's focus on the primary verification logic.
 The application calls `internal/bytealg.Compare`, passing `main.expected` and an unknown buffer as arguments.
 
-![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image16.png|512)
+![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image16.png)
 ![image](https://raw.githubusercontent.com/Nardre/la-routine_images/main/image9.png)
 
 ---
