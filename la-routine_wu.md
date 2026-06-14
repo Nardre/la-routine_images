@@ -256,5 +256,6 @@ python brute_force()
 To use it:
 
 ```bash
+chmod +x la-routine
 gdb --q --nx -x solve.gdb
 ```
